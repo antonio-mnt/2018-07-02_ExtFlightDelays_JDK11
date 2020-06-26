@@ -7,9 +7,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import it.polito.tdp.extflightdelays.model.Airline;
 import it.polito.tdp.extflightdelays.model.Airport;
+import it.polito.tdp.extflightdelays.model.Arco;
 import it.polito.tdp.extflightdelays.model.Flight;
 
 public class ExtFlightDelaysDAO {
@@ -91,5 +93,71 @@ public class ExtFlightDelaysDAO {
 			throw new RuntimeException("Error Connection Database");
 		}
 	}
+	
+	
+	
+	public List<Arco> loadArchi(Map<Integer, Airport> idMap) {
+		String sql = "SELECT ORIGIN_AIRPORT_ID, DESTINATION_AIRPORT_ID " + 
+				"FROM flights AS f1 " + 
+				"group by ORIGIN_AIRPORT_ID, DESTINATION_AIRPORT_ID";
+		List<Arco> result = new LinkedList<>();
+
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			ResultSet rs = st.executeQuery();
+
+			while (rs.next()) {
+				
+				Airport s = idMap.get(rs.getInt("ORIGIN_AIRPORT_ID"));
+				Airport d = idMap.get(rs.getInt("DESTINATION_AIRPORT_ID"));
+				
+				if(s!= null && d!=null) {
+					Arco arco = new Arco(s,d);
+					result.add(arco);
+				}
+				
+			}
+
+			conn.close();
+			return result;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+	}
+	
+	public double getPeso(Airport a1, Airport a2) {
+		String sql = "SELECT ORIGIN_AIRPORT_ID, DESTINATION_AIRPORT_ID, AVG(DISTANCE) as media " + 
+				"FROM flights AS f1 " + 
+				"WHERE (ORIGIN_AIRPORT_ID = ? AND DESTINATION_AIRPORT_ID = ? ) || (ORIGIN_AIRPORT_ID = ? AND DESTINATION_AIRPORT_ID = ? )";
+		double peso = 0;
+
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, a1.getId());
+			st.setInt(2, a2.getId());
+			st.setInt(3, a2.getId());
+			st.setInt(4, a1.getId());
+			ResultSet rs = st.executeQuery();
+
+			while (rs.next()) {
+				peso = rs.getDouble("media");
+			}
+
+			conn.close();
+			return peso;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+	}
+	
+	
 }
 
